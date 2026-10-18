@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Robot Ultrasonic Live Telemetry</title>
+    <!-- Include Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; margin-top: 50px; }
+        .card { background: white; width: 75%; margin: auto; padding: 20px; border-radius: 8px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Live Ultrasonic Sensor Distance</h2>
+        <canvas id="distanceChart"></canvas>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('distanceChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Distance (cm)',
+                    data: [],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        suggestedMax: 150,
+                        title: { display: true, text: 'Distance (cm)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Time' }
+                    }
+                }
+            }
+        });
+
+        // Connect to Python Flask Server-Sent Events (SSE) stream
+        const evtSource = new EventSource('/stream');
+        evtSource.onmessage = function(event) {
+            const distance = parseFloat(event.data);
+            const timeStr = new Date().toLocaleTimeString();
+
+            // Keep only the last 25 data points on screen for a clean rolling view
+            if (chart.data.labels.length > 25) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.data.labels.push(timeStr);
+            chart.data.datasets[0].data.push(distance);
+            chart.update();
+        };
+    </script>
+</body>
+</html>
